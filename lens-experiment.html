@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>trying to do a thing</title>
+  <link href="https://fonts.googleapis.com/css?family=Nothing+You+Could+Do" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: rgba(60, 0, 60, 0.2);
+    }
+
+    #title {
+      font-family: 'Nothing You Could Do', cursive;
+      margin-left: 35rem;
+    }
+
+    #object {
+      position: absolute;
+      z-index: 9;
+      background-color: pink;
+      text-align: center;
+      border: 1px solid black;
+      color: white;
+    }
+
+    #lens {
+
+      border: 3px solid grey;
+      background-color: rgba(200, 200, 200, 1);
+      position: relative;
+      margin-bottom: 140px;
+      height: 250px;
+      width: 10px;
+      border-radius: 20px;
+    }
+
+    #image {
+      position: relative;
+      z-index: -9;
+      background-color: purple;
+      text-align: center;
+      border: 1px solid aqua;
+    }
+
+    div {
+      display: inline-block;
+    }
+
+    #container {
+      margin: auto;
+      width: 70%;
+      padding-left: 25%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="title">
+    <h1>Lens Simulation</h1>
+  </div>
+
+  <div id="container">
+
+    <div id="object">
+      objecteroni
+    </div>
+
+    <canvas id="objectCanvas" width="300" height="500">
+      Update your browser to view the canvas
+    </canvas>
+    <div id="lens"></div>
+    <canvas id="imageCanvas" width="500" height="500">
+      Update your browser to view the canvas
+    </canvas>
+
+  </div>
+
+  <script>
+    //Make the DIV element draggable:
+    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    dragElement(document.getElementById("object"));
+
+    var focalLength = 70000;
+
+    var objCanvas = document.getElementById("objectCanvas");
+    var objContext = objCanvas.getContext("2d");
+    var imgCanvas = document.getElementById("imageCanvas");
+    var imgContext = imgCanvas.getContext("2d");
+    var canvasSize = objCanvas.getBoundingClientRect();
+    var element = document.getElementById('object');
+
+    focalLine();
+
+    function dragElement(elmnt) {
+
+      if (document.getElementById(elmnt.id + "header")) {
+        /* if present, the header is where you move the DIV from:*/
+        document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
+      } else {
+        /* otherwise, move the DIV from anywhere inside the DIV:*/
+        elmnt.onmousedown = dragMouseDown;
+      }
+
+      function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        // get the mouse cursor position at startup:
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        // call a function whenever the cursor moves:
+        document.onmousemove = elementDrag;
+
+      }
+
+      function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        // calculate the new cursor position:
+        //console.log("Positioning image....");
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        // set the element's new position:
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        //console.log(pos1 + " " +  pos2 + " " + pos3 + " " + pos4);
+        createImage();
+        createRay();
+      }
+
+      function closeDragElement() {
+        /* stop moving when mouse button is released:*/
+        document.onmouseup = null;
+        document.onmousemove = null;
+        createImage();
+        focalLine();
+
+      }
+
+
+    }//end function to move Object
+
+    function focalLine() {
+      //draw focal length
+      var lens = document.getElementById("lens");
+      var lensHeight = objCanvas.getBoundingClientRect();
+      var lineHeight = lensHeight.height / 2;
+      // Focal line
+      imgContext.beginPath();
+      imgContext.moveTo(0, lineHeight);
+      imgContext.lineTo(focalLength, 0);
+      imgContext.stroke();
+
+      // Focal line
+      objContext.beginPath();
+      objContext.moveTo(0, lineHeight);
+      objContext.lineTo(focalLength, 0);
+      objContext.stroke();
+    }
+
+    //create the image on the canvas mirroring the position of the objectCanvas
+
+    //creates the lines from the image and the image itself
+    function createImage() {
+
+      var positionInfo = element.getBoundingClientRect();
+      var offsetY = positionInfo.top - canvasSize.top - 250;
+      var bodyRect = document.body.getBoundingClientRect();
+      var offsetX = positionInfo.right - canvasSize.right;
+
+      var image = offsetToImage([offsetX, offsetY]);
+
+      var fixPositionX, fixYPositionY;
+      fixPositionX = objCanvas.width;
+      fixPositionY = (bodyRect.top - canvasSize.top) + (objCanvas.height / 2);
+      var yAccuracy = positionInfo.top / 2;
+      var x = -image[0] + (fixPositionX);
+      var y = image[1] - (yAccuracy - (positionInfo.right) / 2);
+
+      // Clears the canvas
+      imgContext.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
+
+      // Creates image
+      imgContext.beginPath();
+      imgContext.fillRect(x, y, positionInfo.width, positionInfo.height);
+      imgContext.fillStyle = "purple";
+      imgContext.fill();
+
+      // Top line
+      imgContext.beginPath();
+      imgContext.moveTo(x, y);
+      imgContext.lineTo(-10, 120);
+      imgContext.stroke();
+
+      // Bottom line
+      imgContext.beginPath();
+      imgContext.moveTo(x, y);
+      imgContext.lineTo(-10, 320);
+      imgContext.stroke();
+
+    }//end function to create the image
+
+    //function uses the lense equation.
+    //the only part of the code that actually uses physics,
+    //the rest was logical problem solving
+    function offsetToImage(offset) {
+
+      var offsetX = offset[0];
+      var offsetY = offset[1];
+      var objDistance = 1 / offsetX;
+      var focalThing = 1 / focalLength;
+      var imageX = (1 / (focalThing - objDistance));
+      var imageY = imageX * (offsetY / offsetX);
+      return [imageX, imageY];
+
+    }//end function
+
+    //function creates rays from the object
+    function createRay() {
+
+      var positionInfo = element.getBoundingClientRect();
+      var offsetY = positionInfo.top;
+      var offsetX = positionInfo.right;
+      //uses offsetY(up) and offsetX(across) to create the image on the second canvas
+      var image = offsetToImage([offsetX, offsetY]);
+      objContext.clearRect(0, 0, objCanvas.width, objCanvas.height);
+
+      //ray for the top of the lense
+      objContext.beginPath();
+      objContext.moveTo(-image[0] - 380, -image[1] - 100); // X is inverted
+      objContext.lineTo(320, 120);
+      objContext.stroke();
+
+      //ray for the bottom of the lense
+      objContext.beginPath();
+      objContext.moveTo(-image[0] - 380, -image[1] - 100); // X is inverted
+      objContext.lineTo(310, 320);
+      objContext.stroke();
+
+      focalLine();
+
+    }//end function
+
+    createRay();
+    createImage();
+    focalLine();
+
+  </script>
+
+</body>
+
+</html>
