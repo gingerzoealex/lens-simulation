@@ -1,2 +1,2 @@
-# lense-simulation
-a lense simulation created using vanilla JS
+# lens-simulation
+a lenssimulation created using vanilla JS
